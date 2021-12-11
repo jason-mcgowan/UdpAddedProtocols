@@ -1,20 +1,24 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
-namespace jmm
+namespace jmm.ReliableUdp.Communication
 {
   public class UdpConnectionListener
   {
 
-    private IPEndPoint listenRange;
+    private IPEndPoint remoteEp;
     private UdpClient udpClient;
     private int port;
     private bool running;
 
+    public event EventHandler<MsgArgs> DatagramReceived;
+
 
     public UdpConnectionListener(int port)
     {
-      listenRange = new IPEndPoint(IPAddress.Any, 0);
+      remoteEp = new IPEndPoint(IPAddress.Any, 0);
       this.port = port;
       running = false;
     }
@@ -25,13 +29,15 @@ namespace jmm
         return;
 
       udpClient = new UdpClient(port);
-      byte[] payload;
       running = true;
       while (running)
       {
+        byte[] payload;
+        MsgArgs msgArgs;
         try
         {
-          payload = udpClient.Receive(ref listenRange);
+          payload = udpClient.Receive(ref remoteEp);
+          msgArgs = new MsgArgs(remoteEp.Address, remoteEp.Port, payload);
         }
         catch (SocketException e)
         {
@@ -40,7 +46,10 @@ namespace jmm
 
           throw e;
         }
-        // todo 
+        if (DatagramReceived != null)
+        {
+          Task.Run(() => DatagramReceived.Invoke(this, msgArgs));
+        }
       }
     }
 

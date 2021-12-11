@@ -41,3 +41,4 @@ This led me to reading several fantastic articles at <https://gafferongames.com/
 	- Reliability: 2 min is standard Maximum Segment Lifetime in TCP, so plan on receiving duplicate packets up to 2 min later.
 	- Rate: Should have a preferred rate and mechanism to back off? Future goal?
   - TCP Retransmission Timer RFC 6298: Contains guidance on how to handle calculating retransmission timer.
+- 2021-12-10: Worked through getting UDP communications going in C#. Researched and implemented .NET thread pool functionality.

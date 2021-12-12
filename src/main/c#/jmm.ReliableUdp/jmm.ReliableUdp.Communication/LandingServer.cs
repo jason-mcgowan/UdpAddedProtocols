@@ -5,9 +5,8 @@ using System.Threading.Tasks;
 
 namespace jmm.ReliableUdp.Communication
 {
-  public class UdpConnectionListener
+  public class LandingServer
   {
-
     private IPEndPoint remoteEp;
     private UdpClient udpClient;
     private int port;
@@ -16,7 +15,7 @@ namespace jmm.ReliableUdp.Communication
     public event EventHandler<MsgArgs> DatagramReceived;
 
 
-    public UdpConnectionListener(int port)
+    public LandingServer(int port)
     {
       remoteEp = new IPEndPoint(IPAddress.Any, 0);
       this.port = port;

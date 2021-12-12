@@ -42,3 +42,4 @@ This led me to reading several fantastic articles at <https://gafferongames.com/
 	- Rate: Should have a preferred rate and mechanism to back off? Future goal?
   - TCP Retransmission Timer RFC 6298: Contains guidance on how to handle calculating retransmission timer.
 - 2021-12-10: Worked through getting UDP communications going in C#. Researched and implemented .NET thread pool functionality.
+- 2021-12-11: Coded several classes to push messages around, sort by sender, and handle. This was slow and cumbersome, so I'm shifting the scheme to have a single listening port which will communicate with clients to shift to another port for the live channel.

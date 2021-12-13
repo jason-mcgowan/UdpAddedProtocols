@@ -5,10 +5,12 @@ VisualStudioVersion = 16.0.31911.196
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jmm.ReliableUdp.Communication", "jmm.ReliableUdp.Communication\jmm.ReliableUdp.Communication.csproj", "{40B36AEA-C081-4ECB-B027-71C4C9F4A2C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "jmm.ReliableUdp.Example", "jmm.ReliableUdp.Example\jmm.ReliableUdp.Example.csproj", "{9E89FBA8-895A-4752-A73C-EF1B5CE201D7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jmm.ReliableUdp.Example", "jmm.ReliableUdp.Example\jmm.ReliableUdp.Example.csproj", "{9E89FBA8-895A-4752-A73C-EF1B5CE201D7}"
 	ProjectSection(ProjectDependencies) = postProject
 		{40B36AEA-C081-4ECB-B027-71C4C9F4A2C6} = {40B36AEA-C081-4ECB-B027-71C4C9F4A2C6}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "jmm.ReliableUdp.Protocol", "jmm.ReliableUdp.Protocol\jmm.ReliableUdp.Protocol.csproj", "{0921CE28-F76F-4BA3-8607-66F93656560C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +26,10 @@ Global
 		{9E89FBA8-895A-4752-A73C-EF1B5CE201D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E89FBA8-895A-4752-A73C-EF1B5CE201D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E89FBA8-895A-4752-A73C-EF1B5CE201D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0921CE28-F76F-4BA3-8607-66F93656560C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0921CE28-F76F-4BA3-8607-66F93656560C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0921CE28-F76F-4BA3-8607-66F93656560C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0921CE28-F76F-4BA3-8607-66F93656560C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,4 +1,5 @@
 ﻿using jmm.ReliableUdp.Communication;
+using jmm.ReliableUdp.Protocol;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -12,22 +13,36 @@ namespace jmm.ReliableUdp.Example
   {
     private static void Main(string[] args)
     {
-      Listener conn = new Listener(8080);
-      Task connListenerTask = Task.Run(() => conn.Start());
-      conn.DatagramReceived += Conn_DatagramReceived;
-      UdpClient[] clients = new UdpClient[10];
-      for (int i = 0; i < clients.Length; i++)
-      {
-        IPEndPoint ep = new IPEndPoint(IPAddress.Loopback, 0);
-        UdpClient client = new UdpClient();
 
-        //ep.Port = ((IPEndPoint)client.Client.LocalEndPoint).Port;
-        Console.WriteLine("Port is now: " + ep.Port);
-        SendMessage(client, "Test");
+      ushort test = 0;
+      Console.WriteLine("Max uint16: " + test);
+      byte[] maxBytes = BitConverter.GetBytes(test);
+      foreach (var num in maxBytes)
+      {
+        Console.WriteLine(num);
       }
-      
+      Console.WriteLine("maxBytes length: " + maxBytes.Length);
       Console.WriteLine("Press any key to exit");
       Console.ReadKey();
+    }
+
+    private static byte[] TestConnectionHandshakeToken()
+    {
+      byte[] CONNECTION_REQUEST = Encoding.UTF8.GetBytes("de8567de606e4a6db9c8292b703d8f6d");
+      Version ver = typeof(Messages).Assembly.GetName().Version;
+      byte[] majorVer = BitConverter.GetBytes(ver.MajorRevision);
+      byte[] minorVer = BitConverter.GetBytes(ver.MinorRevision);
+      Console.WriteLine("Version: " + ver);
+      Console.WriteLine("Major revision version: " + ver.Major);
+      Console.WriteLine("Minor revision version: " + ver.Minor);
+      Console.WriteLine("Major version byte array length: " + majorVer.Length);
+      int length = majorVer.Length + minorVer.Length + CONNECTION_REQUEST.Length;
+      Console.WriteLine("Total length: " + length);
+      byte[] qualifiedConnectionPayload = new byte[length];
+      Array.Copy(majorVer, 0, qualifiedConnectionPayload, 0, majorVer.Length);
+      Array.Copy(minorVer, 0, qualifiedConnectionPayload, majorVer.Length, minorVer.Length);
+      Array.Copy(CONNECTION_REQUEST, 0, qualifiedConnectionPayload, majorVer.Length + minorVer.Length, CONNECTION_REQUEST.Length);
+      return qualifiedConnectionPayload;
     }
 
     private static void MultiConnect()

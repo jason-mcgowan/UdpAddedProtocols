@@ -16,19 +16,17 @@ namespace jmm.ReliableUdp.Communication
     private SwitchServerOptions options;
     private IPEndPoint listenEp;
     private UdpClient udpClient;
-    private int listenPort;
+    private int localPort;
     private bool running;
-    private Dictionary<IPEndPoint, Channel> channels;
-    private Dictionary<IPEndPoint, Responder> responders;
-
-    public event EventHandler<MsgArgs> DatagramReceived;
+    private Dictionary<IPEndPoint, Channel> channels = new Dictionary<IPEndPoint, Channel>();
+    private Dictionary<IPEndPoint, Responder> responders = new Dictionary<IPEndPoint, Responder>();
 
     public SwitchServer(int port)
     {
-      listenEp = new IPEndPoint(IPAddress.Any, 0);
-      listenPort = port;
-      running = false;
       options = SwitchServerOptions.CreateDefault();
+      listenEp = new IPEndPoint(IPAddress.Any, 0);
+      localPort = port;
+      running = false;
     }
 
     public void Start()
@@ -36,7 +34,7 @@ namespace jmm.ReliableUdp.Communication
       if (running)
         return;
       running = true;
-      udpClient = new UdpClient(listenPort);
+      udpClient = new UdpClient(localPort);
       while (running)
       {
         byte[] payload;
@@ -58,9 +56,6 @@ namespace jmm.ReliableUdp.Communication
 
     private void HandleMessage(byte[] payload, IPEndPoint remoteEp)
     {
-      if (channels.ContainsKey(remoteEp))
-        return;
-
       if (Messages.IsConnectionRequest(payload))
       {
         if (responders.TryGetValue(remoteEp, out Responder responder))
@@ -69,9 +64,17 @@ namespace jmm.ReliableUdp.Communication
         }
         else
         {
-          responder = new Responder(remoteEp, options);
+          if (channels.ContainsKey(remoteEp))
+            return;
+
+          UdpClient switchConn = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+          ushort switchPort = (ushort)((IPEndPoint)switchConn.Client.LocalEndPoint).Port;
+          byte[] sendPayload = Messages.SwitchToPortPayload(switchPort);
+          channels.Add(remoteEp, new Channel(remoteEp)); // todo get channel up and running
+
+          responder = new Responder(udpClient, remoteEp, options, sendPayload);
           responders.Add(remoteEp, responder);
-          Task.Run(() => responder.SendRetries(() => responders.Remove(remoteEp)));
+          Task.Run(() => responder.SendRetries(() => OnResponseRetriesComplete(remoteEp)));
         }
       }
       else if (Messages.IsSwitchAck(payload))
@@ -80,9 +83,14 @@ namespace jmm.ReliableUdp.Communication
         {
           responder.Close();
           responders.Remove(remoteEp);
-          // TODO Add the new channel
         }
       }
+    }
+
+    private void OnResponseRetriesComplete(IPEndPoint remoteEp)
+    {
+      channels.Remove(remoteEp);
+      responders.Remove(remoteEp);
     }
 
     public void Stop()
@@ -93,40 +101,48 @@ namespace jmm.ReliableUdp.Communication
 
     private class Responder
     {
-      internal UdpClient UdpConnection { get; private set; }
-
-      private int localPort;
+      UdpClient xmitClient;
       private int retryNumber;
       private IPEndPoint remoteEp;
       private SwitchServerOptions options;
       private bool running;
-      private byte[] sendPayload;
+      private byte[] payload;
       private Thread sleepyThread;
 
-      internal Responder(IPEndPoint remoteEp, SwitchServerOptions options)
+      internal Responder(UdpClient xmitClient, IPEndPoint remoteEp, SwitchServerOptions options, byte[] payload)
       {
+        this.xmitClient = xmitClient;
         this.remoteEp = remoteEp;
         this.options = options;
-        UdpConnection = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
-        localPort = ((IPEndPoint)UdpConnection.Client.LocalEndPoint).Port;
+        this.payload = payload;
         retryNumber = 0;
         running = true;
-        sendPayload = Messages.SwitchToPortPayload((ushort)localPort);
       }
 
-      internal void SendRetries(Action completeCallback)
+      internal void SendRetries(Action timeoutCallback)
       {
         sleepyThread = Thread.CurrentThread;
-        while (retryNumber < options.MaxRetries)
+        while (retryNumber <= options.MaxRetries)
         {
           if (!running)
             return;
-          if (retryNumber > options.MaxRetries)
-            return;
-          UdpConnection.Send(sendPayload, sendPayload.Length, remoteEp);
-          Thread.Sleep((int)options.RetryWaitTime);
+          xmitClient.Send(payload, payload.Length, remoteEp);
+          retryNumber++;
+          try
+          {
+            Thread.Sleep((int)options.RetryWaitTime);
+          }
+          catch (ThreadInterruptedException e)
+          {
+            if (running)
+              throw e;
+          }
         }
-        completeCallback?.Invoke();
+        if (!running)
+          return;
+
+        Close();
+        timeoutCallback?.Invoke();
       }
 
       internal void Close()

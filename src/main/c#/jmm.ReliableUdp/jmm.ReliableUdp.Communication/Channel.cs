@@ -48,7 +48,7 @@ namespace jmm.ReliableUdp.Communication
       listenThread.Abort();
     }
 
-    public void SendRetries(int id, byte[] payload, Action ackCb, Action failCb)
+    public void SendRetries(short id, byte[] payload, Action ackCb, Action failCb)
     {
       ackCbs.Add(id, ackCb);
       failCbs.Add(id, failCb);
@@ -68,11 +68,11 @@ namespace jmm.ReliableUdp.Communication
       listenThread = Thread.CurrentThread;
       while (running)
       {
-        byte[] payload;
+        byte[] dgram;
         try
         {
-          payload = Client.Receive(ref remoteEp);
-          HandleMessage(payload);
+          dgram = Client.Receive(ref remoteEp);
+          HandleMessage(dgram);
         }
         catch (Exception e)
         {
@@ -83,21 +83,22 @@ namespace jmm.ReliableUdp.Communication
       }
     }
 
-    private void HandleMessage(byte[] payload)
+    private void HandleMessage(byte[] dgram)
     {
-      if (payload.Length < 3)
+      if (dgram.Length < 3)
       {
         // FUTURE: some kind of logging or event
         return;
       }
-      int id = BitConverter.ToInt32(payload, 1);
-      HeaderFlag flags = (HeaderFlag)payload[0];
+      HeaderFlag flags = (HeaderFlag)dgram[0];
+      short id = BitConverter.ToInt16(dgram, 1);
       if (flags.HasFlag(HeaderFlag.ACK_RESPONSE))
       {
         // Check if we are waiting for the response, then complete it
         if (!ackCbs.TryGetValue(id, out Action ackCb))
           return;
-        StopTracking(id);
+        retrySenders[id].Close();
+        RemoveTrackers(id);
         Task.Run(ackCb);
         return;
       }
@@ -105,30 +106,30 @@ namespace jmm.ReliableUdp.Communication
       {
         SendAck(id);
       }
-      MsgArgs msgArgs = new MsgArgs(flags, id, payload);
+      MsgArgs msgArgs = new MsgArgs(flags, id, dgram);
       Task.Run(() => MessageReceived?.Invoke(this, msgArgs));
     }
 
-    private void StopTracking(int id)
+    private void RemoveTrackers(int id)
     {
       ackCbs.Remove(id);
       failCbs.Remove(id);
       retrySenders.Remove(id);
     }
 
-    private void SendAck(int id)
+    private void SendAck(short id)
     {
-      byte[] payload = new byte[3];
-      payload[0] = (byte)HeaderFlag.ACK_RESPONSE;
-      Array.Copy(BitConverter.GetBytes(id), 0, payload, 1, 2);
-      Client.Send(payload, payload.Length, remoteEp);
+      byte[] dgram = new byte[3];
+      dgram[0] = (byte)HeaderFlag.ACK_RESPONSE;
+      Array.Copy(BitConverter.GetBytes(id), 0, dgram, 1, 2);
+      Client.Send(dgram, dgram.Length, remoteEp);
     }
     private void OnRetriesTimeout(int id)
     {
       if (!failCbs.TryGetValue(id, out Action failCb))
         return;
 
-      StopTracking(id);
+      RemoveTrackers(id);
       failCb?.Invoke();
     }
   }

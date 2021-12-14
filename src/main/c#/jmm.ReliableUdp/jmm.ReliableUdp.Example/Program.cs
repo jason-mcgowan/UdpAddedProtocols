@@ -13,9 +13,35 @@ namespace jmm.ReliableUdp.Example
   {
     private static void Main(string[] args)
     {
-
-
+      IPEndPoint ep1 = new IPEndPoint(IPAddress.Loopback, 9000);
+      IPEndPoint ep2 = new IPEndPoint(IPAddress.Loopback, 9001);
+      UdpClient udpc1 = new UdpClient(9000);
+      UdpClient udpc2 = new UdpClient(9001);
+      Channel c1 = new Channel(udpc1, ep2);
+      Channel c2 = new Channel(udpc2, ep1);
+      c1.MessageReceived += OnMessageReceived;
+      c2.MessageReceived += OnMessageReceived;
+      c1.Start();
+      c2.Start();
+      byte[] payload = new byte[] { 1, 2, 3 };
+      Console.WriteLine("Sending from c1 to c2");
+      c1.SendRetries(1, payload, () => OnAckCallback("c1"), () => FailCallback("c1"));
       Thread.Sleep(1000);
+    }
+
+    private static void OnAckCallback(string input)
+    {
+      Console.WriteLine("Ack received: " + input);
+    }
+
+    private static void FailCallback(string input)
+    {
+      Console.WriteLine("Fail callback: " + input);
+    }
+
+    private static void OnMessageReceived(object sender, MsgArgs e)
+    {
+      Console.WriteLine("Received message, flags: " + (byte)e.Flags + " id: " + e.Id);
     }
 
     private static void TestServerReturnsSwitches()
@@ -31,13 +57,13 @@ namespace jmm.ReliableUdp.Example
       client9001.Connect(IPAddress.Loopback, 8080);
       byte[] reqPayload = Messages.CONNECT_HANDSHAKE_PAYLOAD;
       byte[] ackPayload = Messages.SWITCH_ACK_PAYLOAD;
-      client9000.Send(reqPayload, reqPayload.Length);      
+      client9000.Send(reqPayload, reqPayload.Length);
       client9001.Send(reqPayload, reqPayload.Length);
       Thread.Sleep(2000);
       Console.WriteLine("Trying to receive from: " + serverEp);
       client9000.Receive(ref serverEp);
       Console.WriteLine("Recieved from: " + serverEp);
-      client9000.Send(ackPayload, ackPayload.Length);    
+      client9000.Send(ackPayload, ackPayload.Length);
       Thread.Sleep(1000);
     }
 
@@ -86,7 +112,7 @@ namespace jmm.ReliableUdp.Example
         byte[] bytes = client.Receive(ref ep);
         Console.WriteLine(owner + " received message from port: " + ep.Port);
       }
-    }    
+    }
 
     private static void SendMessage(UdpClient udpClient, string message)
     {

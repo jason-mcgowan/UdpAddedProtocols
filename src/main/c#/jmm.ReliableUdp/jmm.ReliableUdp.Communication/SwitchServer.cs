@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 namespace jmm.ReliableUdp.Communication
 {
   /// <summary>
-  /// Listens for incoming connection requests. Runs synchronously. On receiving a message: If there is already an active connection, ignores the request. If the connection is new, sends SWITCH message to meet on another port (default chooses any available port in the application environment). Will continue to sent SWITCH statements until an ACK is received.
+  /// Listens for incoming connection requests. Runs synchronously. On receiving a message: If there is already an active connection, ignores the request. If the connection is new, sends SWITCH message to meet on another port (default chooses any available port in the application environment). Will continue to send SWITCH statements until an ACK is received or retry limit reached.
   /// </summary>
   public class SwitchServer
   {
-    private SwitchServerOptions options;
+    private RetryOptions options;
     private IPEndPoint listenEp;
     private UdpClient udpClient;
     private int localPort;
@@ -23,7 +23,7 @@ namespace jmm.ReliableUdp.Communication
 
     public SwitchServer(int port)
     {
-      options = SwitchServerOptions.CreateDefault();
+      options = RetryOptions.CreateDefault();
       listenEp = new IPEndPoint(IPAddress.Any, 0);
       localPort = port;
       running = false;
@@ -70,7 +70,7 @@ namespace jmm.ReliableUdp.Communication
           UdpClient switchConn = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
           ushort switchPort = (ushort)((IPEndPoint)switchConn.Client.LocalEndPoint).Port;
           byte[] sendPayload = Messages.SwitchToPortPayload(switchPort);
-          channels.Add(remoteEp, new Channel(remoteEp)); // todo get channel up and running
+          channels.Add(remoteEp, new Channel(switchConn, remoteEp));
 
           responder = new Responder(udpClient, remoteEp, options, sendPayload);
           responders.Add(remoteEp, responder);
@@ -104,12 +104,12 @@ namespace jmm.ReliableUdp.Communication
       UdpClient xmitClient;
       private int retryNumber;
       private IPEndPoint remoteEp;
-      private SwitchServerOptions options;
+      private RetryOptions options;
       private bool running;
       private byte[] payload;
       private Thread sleepyThread;
 
-      internal Responder(UdpClient xmitClient, IPEndPoint remoteEp, SwitchServerOptions options, byte[] payload)
+      internal Responder(UdpClient xmitClient, IPEndPoint remoteEp, RetryOptions options, byte[] payload)
       {
         this.xmitClient = xmitClient;
         this.remoteEp = remoteEp;

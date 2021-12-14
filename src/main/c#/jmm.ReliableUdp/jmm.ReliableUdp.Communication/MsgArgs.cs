@@ -1,21 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Text;
+﻿using jmm.ReliableUdp.Protocol;
+using System;
 
 namespace jmm.ReliableUdp.Communication
 {
   public class MsgArgs : EventArgs
   {
-    public IPAddress Address { get; }
-    public int Port { get; }
-    public byte[] Payload { get; }
+    public HeaderFlag Flags { get; private set; }
+    public int Id { get; private set; }
+    public byte[] Payload { get; private set; }
 
-    public MsgArgs(IPAddress address, int port, byte[] message)
+    public MsgArgs(HeaderFlag flags, int id, byte[] payload)
     {
-      Address = address;
-      Port = port;
-      Payload = message;
+      Flags = flags;
+      Id = id;
+      Payload = payload;
     }
   }
 }

@@ -4,20 +4,20 @@ using System.Text;
 
 namespace jmm.ReliableUdp.Communication
 {
-  class SwitchServerOptions
+  public class RetryOptions
   {
     public uint RetryWaitTime { get; set; }
     public uint MaxRetries { get; set; }
 
-    public SwitchServerOptions(uint retryWaitTime, uint maxRetries)
+    public RetryOptions(uint retryWaitTime, uint maxRetries)
     {
       RetryWaitTime = retryWaitTime;
       MaxRetries = maxRetries;
     }
 
-    public static SwitchServerOptions CreateDefault()
+    public static RetryOptions CreateDefault()
     {
-      return new SwitchServerOptions(1000, 5);
+      return new RetryOptions(1000, 5);
     }
   }
 }

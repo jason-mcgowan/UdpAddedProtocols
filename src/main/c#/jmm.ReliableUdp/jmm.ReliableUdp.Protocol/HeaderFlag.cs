@@ -6,7 +6,6 @@ namespace jmm.ReliableUdp.Protocol
   public enum HeaderFlag
   {
     ACK_REQUEST = 1,
-    ACK_RESPONSE = 2,
-    MESSAGE = 4
+    ACK_RESPONSE = 2
   }
 }

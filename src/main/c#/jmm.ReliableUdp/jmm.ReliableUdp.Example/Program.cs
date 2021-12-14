@@ -14,16 +14,31 @@ namespace jmm.ReliableUdp.Example
     private static void Main(string[] args)
     {
 
-      ushort test = 0;
-      Console.WriteLine("Max uint16: " + test);
-      byte[] maxBytes = BitConverter.GetBytes(test);
-      foreach (var num in maxBytes)
-      {
-        Console.WriteLine(num);
-      }
-      Console.WriteLine("maxBytes length: " + maxBytes.Length);
-      Console.WriteLine("Press any key to exit");
-      Console.ReadKey();
+
+      Thread.Sleep(1000);
+    }
+
+    private static void TestServerReturnsSwitches()
+    {
+      SwitchServer server = new SwitchServer(8080);
+      Task serverTask = Task.Run(() => server.Start());
+
+      IPEndPoint serverEp = new IPEndPoint(IPAddress.Loopback, 8080);
+      Console.WriteLine("Server EP: " + serverEp);
+      UdpClient client9000 = new UdpClient(new IPEndPoint(IPAddress.Loopback, 9000));
+      client9000.Connect(IPAddress.Loopback, 8080);
+      UdpClient client9001 = new UdpClient(new IPEndPoint(IPAddress.Loopback, 9001));
+      client9001.Connect(IPAddress.Loopback, 8080);
+      byte[] reqPayload = Messages.CONNECT_HANDSHAKE_PAYLOAD;
+      byte[] ackPayload = Messages.SWITCH_ACK_PAYLOAD;
+      client9000.Send(reqPayload, reqPayload.Length);      
+      client9001.Send(reqPayload, reqPayload.Length);
+      Thread.Sleep(2000);
+      Console.WriteLine("Trying to receive from: " + serverEp);
+      client9000.Receive(ref serverEp);
+      Console.WriteLine("Recieved from: " + serverEp);
+      client9000.Send(ackPayload, ackPayload.Length);    
+      Thread.Sleep(1000);
     }
 
     private static byte[] TestConnectionHandshakeToken()
@@ -71,33 +86,7 @@ namespace jmm.ReliableUdp.Example
         byte[] bytes = client.Receive(ref ep);
         Console.WriteLine(owner + " received message from port: " + ep.Port);
       }
-    }
-
-    private static void TestListener()
-    {
-      Listener conn = new Listener(8080);
-      Task connListenerTask = Task.Run(() => conn.Start());
-      conn.DatagramReceived += Conn_DatagramReceived;
-      UdpClient udpClient = new UdpClient(9000);
-      Thread.Sleep(50);
-      SendMessage(udpClient, "Test Message");
-      Thread.Sleep(50);
-      SendMessage(udpClient, "Message 2");
-      Thread.Sleep(50);
-      SendMessage(udpClient, "And a third");
-      Thread.Sleep(50);
-      UdpClient udpClient2 = new UdpClient(9090);
-      SendMessage(udpClient2, "Does this get through?");
-      Thread.Sleep(1000);
-      conn.Stop();
-      Console.ReadKey();
-    }
-
-    private static void Conn_DatagramReceived(object sender, MsgArgs e)
-    {
-      String message = Encoding.UTF8.GetString(e.Payload);
-      Console.WriteLine(e.Address + ":" + e.Port + " sent " + message);
-    }
+    }    
 
     private static void SendMessage(UdpClient udpClient, string message)
     {

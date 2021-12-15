@@ -10,7 +10,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jmm.ReliableUdp.Example", "
 		{40B36AEA-C081-4ECB-B027-71C4C9F4A2C6} = {40B36AEA-C081-4ECB-B027-71C4C9F4A2C6}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "jmm.ReliableUdp.Protocol", "jmm.ReliableUdp.Protocol\jmm.ReliableUdp.Protocol.csproj", "{0921CE28-F76F-4BA3-8607-66F93656560C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jmm.ReliableUdp.Protocol", "jmm.ReliableUdp.Protocol\jmm.ReliableUdp.Protocol.csproj", "{0921CE28-F76F-4BA3-8607-66F93656560C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

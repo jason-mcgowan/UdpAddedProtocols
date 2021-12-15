@@ -13,6 +13,52 @@ namespace jmm.ReliableUdp.Example
   {
     private static void Main(string[] args)
     {
+      SwitchServer server = new SwitchServer(9000);
+      Task.Run(()=> server.Start());
+      IPEndPoint serverEp = new IPEndPoint(IPAddress.Loopback, 9000);
+      SwitchClient client = new SwitchClient(serverEp, 9001);
+      client.EstablishedConnection += Client_EstablishedConnection;
+      client.Connect();
+
+      Console.ReadKey();
+    }
+
+    private static void Client_EstablishedConnection(object sender, EventArgs e)
+    {
+      SwitchClient client = (SwitchClient)sender;
+      Channel switchChannel = client.SwitchChannel;
+      Console.WriteLine("Established connection!");
+    }
+
+    private static void ListenToUnity()
+    {
+      Console.WriteLine("Starting server");
+      IPEndPoint unityEp = new IPEndPoint(IPAddress.Loopback, 8888);
+      UdpClient udpc1 = new UdpClient(9000);
+      Channel c1 = new Channel(udpc1, unityEp);
+      c1.MessageReceived += C1_MessageReceived;
+      c1.Start();
+    }
+
+    private static void C1_MessageReceived(object sender, MsgArgs e)
+    {
+      byte[] dgram = e.Dgram;
+      string payload;
+      if (dgram.Length <= 3)
+      {
+        payload = "";
+      }
+      else
+      {
+        int payloadLength = dgram.Length - 3;
+        payload = Encoding.UTF8.GetString(dgram, 3, payloadLength);
+      }
+
+      Console.WriteLine("Received message, id: " + e.Id + " payload as UTF8: " + payload);
+    }
+
+    private static void TalkToSelf()
+    {
       IPEndPoint ep1 = new IPEndPoint(IPAddress.Loopback, 9000);
       IPEndPoint ep2 = new IPEndPoint(IPAddress.Loopback, 9001);
       UdpClient udpc1 = new UdpClient(9000);
@@ -22,11 +68,9 @@ namespace jmm.ReliableUdp.Example
       c1.MessageReceived += OnMessageReceived;
       c2.MessageReceived += OnMessageReceived;
       c1.Start();
-      c2.Start();
       byte[] payload = new byte[] { 1, 2, 3 };
       Console.WriteLine("Sending from c1 to c2");
       c1.SendRetries(1, payload, () => OnAckCallback("c1"), () => FailCallback("c1"));
-      Thread.Sleep(1000);
     }
 
     private static void OnAckCallback(string input)

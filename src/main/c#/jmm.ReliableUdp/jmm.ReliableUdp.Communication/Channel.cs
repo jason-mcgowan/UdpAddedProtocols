@@ -63,6 +63,11 @@ namespace jmm.ReliableUdp.Communication
       rs.SendRetries(() => OnRetriesTimeout(id));
     }
 
+    public void SendDgram(byte[] dgram)
+    {
+      Client.Send(dgram, dgram.Length, remoteEp);
+    }
+
     private void Listen()
     {
       listenThread = Thread.CurrentThread;

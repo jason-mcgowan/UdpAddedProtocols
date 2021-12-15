@@ -20,7 +20,7 @@ namespace jmm.ReliableUdp.Protocol
       Version ver = typeof(Messages).Assembly.GetName().Version;
       byte[] majorVer = BitConverter.GetBytes(ver.MajorRevision);
       byte[] minorVer = BitConverter.GetBytes(ver.MinorRevision);
-      
+
       // Both version byte arrays are size 2
       int length = 4 + requestToken.Length;
 
@@ -44,6 +44,18 @@ namespace jmm.ReliableUdp.Protocol
       return payload;
     }
 
+    public static ushort GetSwitchPort(byte[] dgram)
+    {
+      if (dgram.Length != CONNECT_HANDSHAKE_PAYLOAD.Length + 2)      
+        return 0;
+      
+      bool arraysMatch = ArrayMatch(dgram, 0, CONNECT_HANDSHAKE_PAYLOAD, 0, CONNECT_HANDSHAKE_PAYLOAD.Length);
+      if (!arraysMatch)
+        return 0;
+
+      return BitConverter.ToUInt16(dgram, CONNECT_HANDSHAKE_PAYLOAD.Length);
+    }
+
     public static bool IsSwitchAck(byte[] payload)
     {
       return ArrayMatch(payload, SWITCH_ACK_PAYLOAD);
@@ -60,7 +72,21 @@ namespace jmm.ReliableUdp.Protocol
           return false;
       }
       return true;
+    }
 
+    public static bool ArrayMatch(byte[] arr1, int i1, byte[] arr2, int i2, int length)
+    {
+      if (arr1.Length < i1 + length)
+        return false;
+      if (arr2.Length < i2 + length)
+        return false;
+
+      for (int i = 0; i < length; i++)
+      {
+        if (arr1[i1 + i] != arr2[i2 + i])
+          return false;
+      }
+      return true;
     }
   }
 }

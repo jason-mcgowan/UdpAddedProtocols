@@ -7,13 +7,13 @@ namespace jmm.ReliableUdp.Communication
   {
     public HeaderFlag Flags { get; private set; }
     public int Id { get; private set; }
-    public byte[] Payload { get; private set; }
+    public byte[] Dgram { get; private set; }
 
     public MsgArgs(HeaderFlag flags, int id, byte[] payload)
     {
       Flags = flags;
       Id = id;
-      Payload = payload;
+      Dgram = payload;
     }
   }
 }

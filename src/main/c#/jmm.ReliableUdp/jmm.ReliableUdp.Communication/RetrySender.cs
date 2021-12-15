@@ -55,7 +55,7 @@ namespace jmm.ReliableUdp.Communication
     internal void Close()
     {
       running = false;
-      sleepyThread.Interrupt();
+      //sleepyThread.Interrupt();
     }
 
     internal void ResetTimer()

@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace jmm.ReliableUdp.Communication
@@ -13,6 +12,8 @@ namespace jmm.ReliableUdp.Communication
   /// </summary>
   public class SwitchServer
   {
+    public event EventHandler<ChannelArgs> ConnectionEstablished;
+
     private RetryOptions options;
     private IPEndPoint listenEp;
     private UdpClient udpClient;
@@ -83,6 +84,9 @@ namespace jmm.ReliableUdp.Communication
         {
           responder.Close();
           retrySenders.Remove(remoteEp);
+          Channel connectedChannel = channels[remoteEp];
+          connectedChannel.Start();
+          Task.Run(() => ConnectionEstablished?.Invoke(this, new ChannelArgs(connectedChannel)));
         }
       }
     }

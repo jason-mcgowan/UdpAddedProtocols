@@ -35,7 +35,6 @@ public  class SwitchClient
     {
       handshakeChannel.Start();
       receivedSwitch = false;
-      Console.WriteLine("Starting handshakes");
       Task.Run(() => SendHandshakes());
     }
 
@@ -49,7 +48,6 @@ public  class SwitchClient
       int retry = 0;
       while (!receivedSwitch && retry++ <= retryOptions.MaxRetries)
       {
-        Console.WriteLine("Sending handshake request " + retry);
         handshakeChannel.SendDgram(Messages.CONNECT_HANDSHAKE_PAYLOAD);
         Thread.Sleep((int)retryOptions.RetryWaitTime);
       }
@@ -71,6 +69,7 @@ public  class SwitchClient
         receivedSwitch = true;
         IPEndPoint switchEp = new IPEndPoint(serverEp.Address, port);
         SwitchChannel = new Channel(client, switchEp);
+
         EstablishedConnection?.Invoke(this, EventArgs.Empty);
       }
       handshakeChannel.SendDgram(Messages.SWITCH_ACK_PAYLOAD);

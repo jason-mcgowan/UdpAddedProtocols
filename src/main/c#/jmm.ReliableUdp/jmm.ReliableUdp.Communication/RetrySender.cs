@@ -2,10 +2,13 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-
+using System.Threading.Tasks;
 
 namespace jmm.ReliableUdp.Communication
 {
+  /// <summary>
+  /// Continually sends datagrams until end conditions are met or halted
+  /// </summary>
   internal class RetrySender
   {
     private UdpClient xmitClient;
@@ -14,8 +17,12 @@ namespace jmm.ReliableUdp.Communication
     private RetryOptions options;
     private bool running;
     private byte[] dgram;
-    private Thread sleepyThread;
+    private CancellationTokenSource delayCancel;
 
+    /// <param name="xmitClient">The <see cref="UdpClient"/> used to send</param>
+    /// <param name="remoteEp">The target remote endpoint</param>
+    /// <param name="options">Options for retrying</param>
+    /// <param name="dgram">The datagram to send</param>
     internal RetrySender(UdpClient xmitClient, IPEndPoint remoteEp, RetryOptions options, byte[] dgram)
     {
       this.xmitClient = xmitClient;
@@ -24,26 +31,23 @@ namespace jmm.ReliableUdp.Communication
       this.dgram = dgram;
       retryNumber = 0;
       running = true;
+      delayCancel = new CancellationTokenSource();
     }
 
-    internal void SendRetries(Action timeoutCallback)
+    /// <summary>
+    /// Blocks while sending retries until max retry count reached or process is interrupted with <see cref="Close"/>
+    /// </summary>
+    /// <remarks>Recommend running as a background task on the thread</remarks>
+    /// <param name="timeoutCallback"></param>
+    internal async Task SendRetriesAsync(Action timeoutCallback)
     {
-      sleepyThread = Thread.CurrentThread;
       while (retryNumber <= options.MaxRetries)
       {
         if (!running)
           return;
         xmitClient.Send(dgram, dgram.Length, remoteEp);
         retryNumber++;
-        try
-        {
-          Thread.Sleep((int)options.RetryWaitTime);
-        }
-        catch (ThreadInterruptedException e)
-        {
-          if (running)
-            throw e;
-        }
+        await Task.Delay((int)options.RetryWaitTime, delayCancel.Token);
       }
       if (!running)
         return;
@@ -52,13 +56,17 @@ namespace jmm.ReliableUdp.Communication
       timeoutCallback?.Invoke();
     }
 
+    /// <summary>
+    /// Stops sending datagrams and halts the currently waiting thread
+    /// </summary>
     internal void Close()
     {
       running = false;
-      //sleepyThread.Interrupt();
+      delayCancel.Cancel();
+      delayCancel.Dispose();
     }
 
-    internal void ResetTimer()
+    internal void ResetRetryCount()
     {
       retryNumber = 0;
     }

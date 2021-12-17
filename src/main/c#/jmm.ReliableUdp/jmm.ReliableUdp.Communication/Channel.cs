@@ -10,6 +10,9 @@ namespace jmm.ReliableUdp.Communication
 {
   public class Channel
   {
+    /// <summary>
+    /// Underlying <see cref="UdpClient"/> used for sending and receiving
+    /// </summary>
     public UdpClient Client { get; private set; }
     public RetryOptions RetryOpt { get; set; }
 
@@ -18,6 +21,7 @@ namespace jmm.ReliableUdp.Communication
     private Dictionary<int, Action> ackCbs = new Dictionary<int, Action>();
     private Dictionary<int, Action> failCbs = new Dictionary<int, Action>();
     private Dictionary<int, RetrySender> retrySenders = new Dictionary<int, RetrySender>();
+
     private IPEndPoint remoteEp;
     private bool running;
     private Thread listenThread;
@@ -30,24 +34,38 @@ namespace jmm.ReliableUdp.Communication
       running = false;
     }
 
+    /// <summary>
+    /// Listens on a background thread for messages and invokes the <see cref="MessageReceived"/> event on new messages.
+    /// </summary>
+    /// <remarks>
+    /// Automatically replies to any messages requesting acknowledgement, and stops auto-resending messages which are acknowledged
+    /// </remarks>
     public void Start()
     {
-      lock (this)
-      {
-        if (running == true)
-          return;
-        running = true;
-      }
-
+      if (running)
+        return;
+      running = true;
+      // FUTURE: Change the scheme to run on an external foreground thread
       Task.Run(() => Listen());
     }
 
+    /// <summary>
+    /// Halts listening
+    /// </summary>
     public void Stop()
     {
       running = false;
       listenThread.Abort();
+      // FUTURE: Change to another listening cancellation method. Stop outgoing retry senders. Maybe close the udpclient?
     }
 
+    /// <summary>
+    /// Prepends 3 bytes (header+id) to the payload and sends with acknowledge requested, auto-resend per options.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="payload"></param>
+    /// <param name="ackCb">Action to take on acknowledge received</param>
+    /// <param name="failCb">Action to take when retries complete without acknowledgement</param>
     public void SendRetries(short id, byte[] payload, Action ackCb, Action failCb)
     {
       ackCbs.Add(id, ackCb);
@@ -60,9 +78,13 @@ namespace jmm.ReliableUdp.Communication
 
       RetrySender rs = new RetrySender(Client, remoteEp, RetryOpt, dgram);
       retrySenders.Add(id, rs);
-      rs.SendRetries(() => OnRetriesTimeout(id));
+      rs.SendRetriesAsync(() => OnRetriesTimeout(id));
     }
 
+    /// <summary>
+    /// Sends a raw datagram, no header or id, so no acknowledgement is requested or retries enabled.
+    /// </summary>
+    /// <param name="dgram"></param>
     public void SendDgram(byte[] dgram)
     {
       Client.Send(dgram, dgram.Length, remoteEp);

@@ -13,11 +13,24 @@ namespace jmm.ReliableUdp.Example
   {
     private static void Main(string[] args)
     {
-      TalkToSelf();
-      //TwoClientsConnect();
-      //RunSwitchServer();
+      //IPEndPoint ep1 = new IPEndPoint(IPAddress.Loopback, 9000);
+      //IPEndPoint ep2 = new IPEndPoint(IPAddress.Loopback, 9001);
+      //UdpClient c1 = new UdpClient(9000);
+      //UdpClient c2 = new UdpClient(9001);
+
+      TwoClientsConnect();
 
       Console.ReadKey();
+    }
+
+    private static void PrintReceiptsAsync(UdpClient c1)
+    {
+      c1.BeginReceive(PrintReceiptCallback, new object());
+    }
+
+    private static void PrintReceiptCallback(IAsyncResult ar)
+    {
+
     }
 
     private static void RunSwitchServer()
@@ -49,7 +62,7 @@ namespace jmm.ReliableUdp.Example
     }
 
     private static void Client_EstablishedConnection(object sender, EventArgs e)
-    {      
+    {
       SwitchClient client = (SwitchClient)sender;
       Channel switchChannel = client.SwitchChannel;
       Console.WriteLine("Established connection!");

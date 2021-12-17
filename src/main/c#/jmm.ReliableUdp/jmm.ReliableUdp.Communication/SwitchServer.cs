@@ -4,17 +4,19 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace jmm.ReliableUdp.Communication
 {
   /// <summary>
-  /// Listens for incoming connection requests. Runs synchronously. On receiving a message: If there is already an active connection, ignores the request. If the connection is new, sends SWITCH message to meet on another port (default chooses any available port in the application environment). Will continue to send SWITCH statements until an ACK is received or retry limit reached.
+  /// Listens for requests and sets up multiple local 2-way UDP channels with remote SwitchClients.
   /// </summary>
   public class SwitchServer
   {
-    public event EventHandler<ChannelArgs> ConnectionEstablished;
+    public event EventHandler<ChannelArgs> ConnectionEstablished;    
 
-    private RetryOptions options;
+    public RetryOptions RetryOpts { get; set; }
+
     private IPEndPoint listenEp;
     private UdpClient udpClient;
     private int localPort;
@@ -24,12 +26,20 @@ namespace jmm.ReliableUdp.Communication
 
     public SwitchServer(int port)
     {
-      options = RetryOptions.CreateDefault();
+      RetryOpts = RetryOptions.CreateDefault();
       listenEp = new IPEndPoint(IPAddress.Any, 0);
       localPort = port;
       running = false;
     }
 
+    /// <summary>
+    /// Blocks while receiving connection requests. Recommend running in a foreground <see cref="Thread"/>. Use <see cref="Stop"/> to stop.
+    /// </summary>
+    /// <remarks>
+    /// Note, this routine will create <see cref="ThreadPool"/> <see cref="Task"/> for each connection exchange. These live your Route Transit Time (50-1000ms typical over the internet).<br/>
+    /// Modify <see cref="RetryOpts"/> to change retry attempts and timings.<br/>
+    /// Listen to <see cref="ConnectionEstablished"/> to invoke when a fully switched connection is established.
+    /// </remarks>
     public void Start()
     {
       if (running)
@@ -55,13 +65,22 @@ namespace jmm.ReliableUdp.Communication
       }
     }
 
+    /// <summary>
+    /// Closes the underlying <see cref="UdpClient"/> and halts listening.
+    /// </summary>
+    public void Stop()
+    {
+      running = false;
+      udpClient.Close();
+    }
+
     private void HandleMessage(byte[] payload, IPEndPoint remoteEp)
     {
       if (Messages.IsConnectionRequest(payload))
       {
         if (retrySenders.TryGetValue(remoteEp, out RetrySender retrySender))
         {
-          retrySender.ResetTimer();
+          retrySender.ResetRetryCount();
         }
         else
         {
@@ -73,9 +92,9 @@ namespace jmm.ReliableUdp.Communication
           byte[] sendPayload = Messages.SwitchToPortPayload(switchPort);
           channels.Add(remoteEp, new Channel(switchConn, remoteEp));
 
-          retrySender = new RetrySender(udpClient, remoteEp, options, sendPayload);
+          retrySender = new RetrySender(udpClient, remoteEp, RetryOpts, sendPayload);
           retrySenders.Add(remoteEp, retrySender);
-          Task.Run(() => retrySender.SendRetries(() => OnResponseRetriesComplete(remoteEp)));
+          Task.Run(() => retrySender.SendRetriesAsync(() => OnResponseRetriesComplete(remoteEp)));
         }
       }
       else if (Messages.IsSwitchAck(payload))
@@ -95,12 +114,6 @@ namespace jmm.ReliableUdp.Communication
     {
       channels.Remove(remoteEp);
       retrySenders.Remove(remoteEp);
-    }
-
-    public void Stop()
-    {
-      running = false;
-      udpClient.Close();
     }
   }
 }

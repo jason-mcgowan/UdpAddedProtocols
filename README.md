@@ -3,9 +3,8 @@
 
 Create a .NET Standard 2.0 framework for UDP communications that include:
 - Create a UDP connection channel between two applications
+- Use a switching server to perform initial handshake and assign a new server port for future communications
 - Allow sending optionally "reliable" messages that requests ACK or retransmits
-- Track and update latency/RTT between the applications
-- 
 
 
 ### Background
@@ -44,3 +43,4 @@ This led me to reading several fantastic articles at <https://gafferongames.com/
 - 2021-12-10: Worked through getting UDP communications going in C#. Researched and implemented .NET thread pool functionality.
 - 2021-12-11: Coded several classes to push messages around, sort by sender, and handle. This was slow and cumbersome, so I'm shifting the scheme to have a single listening port which will communicate with clients to shift to another port for the live channel.
 - 2021-12-12: Implemented a switching server that listens for UDP connection requests, opens an available port, sends (with retries) to the remote endpoint until acknowledged.
+- 2021-12-13 to 2021-12-16: Shifted schemes a few times, tried it out with Unity, looking good, ready to take it to the next level over the break!

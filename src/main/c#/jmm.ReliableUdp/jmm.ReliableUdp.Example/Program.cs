@@ -18,9 +18,29 @@ namespace jmm.ReliableUdp.Example
       //UdpClient c1 = new UdpClient(9000);
       //UdpClient c2 = new UdpClient(9001);
 
-      TwoClientsConnect();
+      ThreadPool.SetMaxThreads(10, 100);
+      int workerThreads;
+      int completionPortThreads;
+      ThreadPool.GetMaxThreads(out workerThreads, out completionPortThreads);
+      Console.WriteLine("Max worker and completion port threads: " + workerThreads + ", " + completionPortThreads);
+      for (int i = 0; i < 20; i++)
+      {
+        Task.Run(() => WasteTime(2000));
+      }
+
+      ThreadPool.GetMaxThreads(out workerThreads, out completionPortThreads);
+      Console.WriteLine("Max worker and completion port threads: " + workerThreads + ", " + completionPortThreads);
+
+      ThreadPool.GetAvailableThreads(out workerThreads, out completionPortThreads);
+      Console.WriteLine("Available worker and completion port threads: " + workerThreads + ", " + completionPortThreads);
 
       Console.ReadKey();
+    }
+
+    private static void WasteTime(int ms)
+    {
+      Console.WriteLine("Wasting time on thread " + Thread.CurrentThread.ManagedThreadId);
+      Thread.Sleep(ms);
     }
 
     private static void PrintReceiptsAsync(UdpClient c1)

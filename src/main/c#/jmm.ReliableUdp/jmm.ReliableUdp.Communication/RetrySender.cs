@@ -38,7 +38,7 @@ namespace jmm.ReliableUdp.Communication
     /// Blocks while sending retries until max retry count reached or process is interrupted with <see cref="Close"/>
     /// </summary>
     /// <remarks>Recommend running as a background task on the thread</remarks>
-    /// <param name="timeoutCallback"></param>
+    /// <param name="timeoutCallback">Invoked if all retries have been sent and the final wait time passed without being closed</param>
     internal async Task SendRetriesAsync(Action timeoutCallback)
     {
       while (retryNumber <= options.MaxRetries)

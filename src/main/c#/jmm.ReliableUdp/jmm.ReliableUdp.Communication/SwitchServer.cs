@@ -94,7 +94,7 @@ namespace jmm.ReliableUdp.Communication
 
           retrySender = new RetrySender(udpClient, remoteEp, RetryOpts, sendPayload);
           retrySenders.Add(remoteEp, retrySender);
-          Task.Run(() => retrySender.SendRetriesAsync(() => OnResponseRetriesComplete(remoteEp)));
+          retrySender.SendRetriesAsync(() => OnResponseRetriesComplete(remoteEp));
         }
       }
       else if (Messages.IsSwitchAck(payload))

@@ -18,6 +18,9 @@ namespace jmm.ReliableUdp.Communication
     /// <summary>
     /// Creates a buffer with underlying array of <see cref="System.UInt64"/> words as bitfields.
     /// </summary>
+    /// <remarks>
+    /// While not mandatory, the <paramref name="wordCount"/> should be a power of 2 for faster modulo and division.
+    /// </remarks>
     /// <param name="wordCount">The number of 64-bit words</param>
     /// <param name="initVal">Initialize all bits to 1 (true) or 0 (false)</param>
     public Bitfield64(int wordCount = 1, bool initVal = true)

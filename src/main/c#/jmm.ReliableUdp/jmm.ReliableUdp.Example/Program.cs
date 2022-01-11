@@ -1,6 +1,8 @@
 ﻿using jmm.ReliableUdp.Communication;
 using jmm.ReliableUdp.Protocol;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -13,28 +15,34 @@ namespace jmm.ReliableUdp.Example
   {
     private static void Main(string[] args)
     {
-      //IPEndPoint ep1 = new IPEndPoint(IPAddress.Loopback, 9000);
-      //IPEndPoint ep2 = new IPEndPoint(IPAddress.Loopback, 9001);
-      //UdpClient c1 = new UdpClient(9000);
-      //UdpClient c2 = new UdpClient(9001);
-
-      ThreadPool.SetMaxThreads(10, 100);
-      int workerThreads;
-      int completionPortThreads;
-      ThreadPool.GetMaxThreads(out workerThreads, out completionPortThreads);
-      Console.WriteLine("Max worker and completion port threads: " + workerThreads + ", " + completionPortThreads);
-      for (int i = 0; i < 20; i++)
-      {
-        Task.Run(() => WasteTime(2000));
-      }
-
-      ThreadPool.GetMaxThreads(out workerThreads, out completionPortThreads);
-      Console.WriteLine("Max worker and completion port threads: " + workerThreads + ", " + completionPortThreads);
-
-      ThreadPool.GetAvailableThreads(out workerThreads, out completionPortThreads);
-      Console.WriteLine("Available worker and completion port threads: " + workerThreads + ", " + completionPortThreads);
+      AckTrackerUInt32 at = new AckTrackerUInt32(-1);
+      Console.WriteLine(at);
 
       Console.ReadKey();
+    }
+
+    private static void TestBitfieldOr()
+    {
+      Random rand = new Random();
+      var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+      var bytes = new byte[8];
+      rng.GetBytes(bytes);
+      ulong bitField = BitConverter.ToUInt64(bytes);
+      ulong lsbPos = 180;
+
+      Bitfield64 bf = new Bitfield64(3, false);
+      Console.WriteLine(bf);
+      Console.WriteLine("bitfield: " + GetBits(bitField));
+      Console.WriteLine("lsbPos: " + lsbPos);
+      bf.Or(lsbPos, bitField);
+      Console.WriteLine(bf);
+      ulong getb = bf.GetBits(lsbPos);
+      Console.WriteLine("getb: " + GetBits(getb));
+    }
+
+    private static string GetBits(ulong word)
+    {
+      return Convert.ToString((long)word, 2).PadLeft(64, '0');
     }
 
     private static void WasteTime(int ms)

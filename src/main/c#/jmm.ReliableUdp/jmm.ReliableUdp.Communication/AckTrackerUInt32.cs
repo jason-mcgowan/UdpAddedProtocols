@@ -49,7 +49,7 @@ namespace jmm.ReliableUdp.Communication
     }
 
 
-    public ICollection<uint> ReceiveAcks(uint seq, uint ackBits)
+    public void ReceiveAcks(uint seq, uint ackBits, Action<uint> onNewAck)
     {
       uint newAcks;
       acksLock.EnterUpgradeableReadLock();
@@ -60,7 +60,7 @@ namespace jmm.ReliableUdp.Communication
         newAcks = ~currAcks & ackBits;
         if (newAcks == 0)
         {
-          return null;
+          return;
         }
 
         acksLock.EnterWriteLock();
@@ -78,12 +78,11 @@ namespace jmm.ReliableUdp.Communication
         acksLock.ExitUpgradeableReadLock();
       }
 
-      return GetNewAcks(seq, ref newAcks);
+      GetNewAcks(seq, ref newAcks, onNewAck);
     }
 
-    private static ICollection<uint> GetNewAcks(uint seq, ref uint newAcks)
+    private static void GetNewAcks(uint seq, ref uint newAcks, Action<uint> onNewAck)
     {
-      ICollection<uint> result = new LinkedList<uint>();
       // Typically the lower bits will be 0, so we save some compute cycles by reading the highest bit, shifting, then checking for 0
       uint msb = (uint)1 << 31;
       uint i = 31;
@@ -91,11 +90,10 @@ namespace jmm.ReliableUdp.Communication
       {
         if ((newAcks & msb) != 0)
         {
-          result.Add(seq + i--);
+          onNewAck?.Invoke(seq + i--);
         }
         newAcks <<= 1;
       }
-      return result;
     }
 
     public override string ToString()

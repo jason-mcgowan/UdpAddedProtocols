@@ -1,13 +1,27 @@
+### Current State
+This entire repository is a *WORK IN PROGRESS*. The UDP switching server works correctly; however, I am expanding functionality.
 
 ### Goal
 
-Create a .NET Standard 2.0 framework for UDP communications that include:
-- Create a UDP connection channel between two applications
-- Use a switching server to perform initial handshake and assign a new server port for future communications
-- Allow sending optionally "reliable" messages that requests ACK or retransmits
+Create a protocol targetting .NET Standard 2.0 framework for UDP communications with the following characteristics:
+- Primary focus is on any number of multiplayer game genres
+- High-frequency (60Hz+) small packet updates (<1500 bytes per packet)
+- Optionally reliable messages
+- Built entirely on UDP/IP
+- Latency tracking
+- Stretch Goals
+  - Implement 1 or more cipher suites conforming to DTLS 1.3
+  - Advanced congestion control
+  - Investigate if Path MTU discovery and variable packet max-size is worth implementing/tracking
 
+### Determining sequence ID size
 
-### Background
+- 1 Gbps send and receive (1_073_741_824 bits, 1_048_576 bytes)
+- 1500 byte max packet size, 1 sequence per packet
+- Using a 32-bit sequence ID, this would recycle ID numbers after (4294967296 / 1048576 \* 1500) = 6_144_000 seconds = ~71 days.
+- A 24-bit ID would result in ~6.7 hour recycle time and may be worth adding as an option in the future.
+
+### Background and References
 
 - Prior to 2021-11: I became proficient with Unity, a graphics and scripting engine used primarily for making games. However, I wasn't able to find any **good** solutions for fine control of communications between application instances.
 - 2021-11: Purchased and began reading *Development and Deployment of Multiplayer Online Games, Volume I*. `ISBN: 9783903213067`  
@@ -18,7 +32,14 @@ This led me to reading several fantastic articles at <https://gafferongames.com/
   - <https://gafferongames.com/post/client_server_connection/>
   - <https://gafferongames.com/post/reliable_ordered_messages/>
 
-### Log
+### Design Log
+
+- 2022-01-11
+  - Migrated to new public repository under my github personal account.
+- 2021-12-16 to 2022-01-10
+  - Beginning to expand the framework to support a single port server with multiple clients, a higher transmission rate, and a tighter message sequence tracking/acknowledgement scheme.
+
+### Old Log (prior to 2022-01-11 update)
 
 - 2021-12-07
   - Set up IDE: Visual Studio 2019

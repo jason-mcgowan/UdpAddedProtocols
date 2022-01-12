@@ -9,11 +9,14 @@ namespace jmm.ReliableUdp.Communication
   public class Bitfield64
   {
     private const int WORD_LENGTH = 64;
+    private const int WORD_LENGTH_LG_2 = 6; // 2^6 = 64
 
     public ulong BitLength { get; private set; }
     public int WordCount { get; private set; }
 
     private ulong[] words;
+    private int wordCountLg2;
+    private Func<ulong, WordIndices> getIndices;
 
     /// <summary>
     /// Creates a buffer with underlying array of <see cref="System.UInt64"/> words as bitfields.
@@ -30,9 +33,19 @@ namespace jmm.ReliableUdp.Communication
         throw new ArgumentOutOfRangeException("Word count must be >= 1");
       }
 
+      if ((wordCount & (wordCount - 1)) == 0)
+      {
+        getIndices = GetWordIndicesByPow2;
+      }
+      else
+      {
+        getIndices = GetWordIndices;
+      }
+
       WordCount = wordCount;
       words = new ulong[wordCount];
       BitLength = (ulong)(WORD_LENGTH * wordCount);
+      wordCountLg2 = (int)Math.Log(wordCount, 2.0);
 
       if (!initVal)
       {
@@ -44,21 +57,31 @@ namespace jmm.ReliableUdp.Communication
       }
     }
 
+    private WordIndices GetWordIndicesByPow2(ulong position)
+    {
+      return WordIndices.CreateByPow2(position, wordCountLg2);
+    }
+
+    private WordIndices GetWordIndices(ulong position)
+    {
+      return new WordIndices(position, BitLength);
+    }
+
     /// <summary>
     /// Sets the bit to 0
     /// </summary>
     public void ZeroBit(ulong position)
     {
       // Find where it falls in the buffer, which word that corresponds to, and which index in that word
-      WordIndices wi = new WordIndices(position, BitLength);
+      WordIndices wi = getIndices(position);
 
       // Line up a 1 with the index in the word, flip the bits so now there's a single 0, store the AND
-      words[wi.lowWordInd] &= ~((ulong)1 << wi.bitShiftAmount);
+      words[wi.lowWordInd] &= ~(1ul << wi.bitShiftAmount);
     }
 
     public void Or(ulong lsbPos, ulong bits)
     {
-      WordIndices wi = new WordIndices(lsbPos, BitLength);
+      WordIndices wi = getIndices(lsbPos);
       words[wi.lowWordInd] |= bits << wi.bitShiftAmount;
       words[wi.highWordInd] |= bits >> (WORD_LENGTH - wi.bitShiftAmount);
     }
@@ -68,7 +91,7 @@ namespace jmm.ReliableUdp.Communication
     /// </summary>
     public ulong GetBits(ulong lsbPos)
     {
-      return GetBits(new WordIndices(lsbPos, BitLength));
+      return GetBits(getIndices(lsbPos));
     }
 
     private ulong GetBits(WordIndices wi)
@@ -98,10 +121,24 @@ namespace jmm.ReliableUdp.Communication
       public WordIndices(ulong position, ulong bitLength)
       {
         ulong lowLetterInd = (position % bitLength);
-        ulong wordCount = bitLength / WORD_LENGTH;
-        lowWordInd = (int)(lowLetterInd / WORD_LENGTH);
-        bitShiftAmount = (int)(lowLetterInd % WORD_LENGTH);
+        ulong wordCount = bitLength >> WORD_LENGTH_LG_2;
+        lowWordInd = (int)(lowLetterInd >> WORD_LENGTH_LG_2);
         highWordInd = (int)((lowLetterInd + WORD_LENGTH - 1) % wordCount);
+        bitShiftAmount = (int)(lowLetterInd & (WORD_LENGTH - 1));
+      }
+
+      public static WordIndices CreateByPow2(ulong position, int wordCountLg2)
+      {
+        int shiftAmt = wordCountLg2 + WORD_LENGTH_LG_2;
+        ulong modMask = (1ul << shiftAmt) - 1ul;
+        ulong lowLetterInd = position & modMask;
+
+        return new WordIndices()
+        {
+          lowWordInd = (int)(position >> shiftAmt),
+          highWordInd = (int)(((lowLetterInd + WORD_LENGTH - 1) & modMask) >> shiftAmt),
+          bitShiftAmount = (int)(lowLetterInd & (WORD_LENGTH - 1))
+        };
       }
 
       public override string ToString()

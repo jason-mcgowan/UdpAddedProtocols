@@ -135,7 +135,7 @@ namespace jmm.ReliableUdp.Communication
 
         return new WordIndices()
         {
-          lowWordInd = (int)(position >> shiftAmt),
+          lowWordInd = (int)(lowLetterInd >> shiftAmt),
           highWordInd = (int)(((lowLetterInd + WORD_LENGTH - 1) & modMask) >> shiftAmt),
           bitShiftAmount = (int)(lowLetterInd & (WORD_LENGTH - 1))
         };

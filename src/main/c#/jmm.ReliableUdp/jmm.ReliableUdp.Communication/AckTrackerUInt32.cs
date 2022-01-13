@@ -9,11 +9,18 @@ namespace jmm.ReliableUdp.Communication
     private Bitfield64 sentSeqAcks;
     private ReaderWriterLockSlim acksLock = new ReaderWriterLockSlim();
 
+    public static AckTrackerUInt32 CreateByPow2(int pow2)
+    {
+      return new AckTrackerUInt32((int)(64 * Math.Pow(pow2, 2.0)));
+    }
+
     public AckTrackerUInt32(int minBitCount = 64)
     {
       int wordCount = MinBitCountToWordCount(minBitCount);
       sentSeqAcks = new Bitfield64(wordCount, false);
     }
+
+
 
     private int MinBitCountToWordCount(int minBitCount)
     {

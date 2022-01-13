@@ -26,7 +26,7 @@ namespace jmm.ReliableUdp.Communication
     /// </remarks>
     /// <param name="wordCount">The number of 64-bit words</param>
     /// <param name="initVal">Initialize all bits to 1 (true) or 0 (false)</param>
-    public Bitfield64(int wordCount = 1, bool initVal = true)
+    public Bitfield64(int wordCount = 1, bool initVal = false)
     {
       if (wordCount < 1)
       {
@@ -129,14 +129,16 @@ namespace jmm.ReliableUdp.Communication
 
       public static WordIndices CreateByPow2(ulong position, int wordCountLg2)
       {
-        int shiftAmt = wordCountLg2 + WORD_LENGTH_LG_2;
-        ulong modMask = (1ul << shiftAmt) - 1ul;
+        int modBitShift = wordCountLg2 + WORD_LENGTH_LG_2;
+        ulong modMask = (1ul << modBitShift) - 1ul;
         ulong lowLetterInd = position & modMask;
+
+        int divideBitShift = modBitShift - 1;
 
         return new WordIndices()
         {
-          lowWordInd = (int)(lowLetterInd >> shiftAmt),
-          highWordInd = (int)(((lowLetterInd + WORD_LENGTH - 1) & modMask) >> shiftAmt),
+          lowWordInd = (int)(lowLetterInd >> divideBitShift),
+          highWordInd = (int)(((lowLetterInd + WORD_LENGTH - 1) & modMask) >> divideBitShift),
           bitShiftAmount = (int)(lowLetterInd & (WORD_LENGTH - 1))
         };
       }

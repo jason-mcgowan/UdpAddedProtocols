@@ -15,8 +15,8 @@ namespace jmm.ReliableUdp.Example
   {
     private static void Main(string[] args)
     {
-      AckTrackerUInt32 at = new AckTrackerUInt32(128);
-      at.ReceiveAcks(1, uint.MaxValue, OnNewAck);
+      Bitfield64 bf = new Bitfield64(0);
+      Console.WriteLine(bf);
 
       Console.ReadKey();
     }
